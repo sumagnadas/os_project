@@ -19,6 +19,71 @@ forced to be within the first 8 KiB of the kernel file.
 .long FLAGS
 .long CHECKSUM
 
+exception_handler:
+	cli
+	hlt
+
+.macro isr_err_stub no
+isr_stub_\no:
+    call exception_handler
+    iret 
+.endm
+
+.macro isr_no_err_stub no
+isr_stub_\no:
+    call exception_handler
+    iret 
+.endm
+
+.macro dd_stub no
+	.long isr_stub_\no
+.endm
+
+
+/* Interrupts setup */
+isr_no_err_stub 0
+isr_no_err_stub 1
+isr_no_err_stub 2
+isr_no_err_stub 3
+isr_no_err_stub 4
+isr_no_err_stub 5
+isr_no_err_stub 6
+isr_no_err_stub 7
+isr_err_stub    8
+isr_no_err_stub 9
+isr_err_stub    10
+isr_err_stub    11
+isr_err_stub    12
+isr_err_stub    13
+isr_err_stub    14
+isr_no_err_stub 15
+isr_no_err_stub 16
+isr_err_stub    17
+isr_no_err_stub 18
+isr_no_err_stub 19
+isr_no_err_stub 20
+isr_no_err_stub 21
+isr_no_err_stub 22
+isr_no_err_stub 23
+isr_no_err_stub 24
+isr_no_err_stub 25
+isr_no_err_stub 26
+isr_no_err_stub 27
+isr_no_err_stub 28
+isr_no_err_stub 29
+isr_err_stub    30
+isr_no_err_stub 31
+
+.altmacro
+.global isr_stub_table
+isr_stub_table:
+	.set i, 0
+.rep 32
+	dd_stub %i
+	.set i, i+1
+.endr
+.noaltmacro
+
 /*
 The multiboot standard does not define the value of the stack pointer register
 (esp) and it is up to the kernel to provide a stack. This allocates room for a
@@ -45,6 +110,24 @@ doesn't make sense to return from this function as the bootloader is gone.
 .section .text
 .global _start
 .type _start, @function
+.global gdt_flush
+
+/* Flush and load GDT */
+gdt_flush:
+    mov eax, [esp+4]   
+    lgdt [eax]
+
+    mov ax, 0x10        
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    jmp 0x08:.flush     
+.flush:
+    ret
+
 _start:
 	/*
 	The bootloader has loaded us into 32-bit protected mode on a x86
@@ -76,7 +159,9 @@ _start:
 	C++ features such as global constructors and exceptions will require
 	runtime support to work as well.
 	*/
-
+  	/* Setup IDT, GDT and other required stuff */
+	call gdt_install
+	call idt_init
 	/*
 	Enter the high-level kernel. The ABI requires the stack is 16-byte
 	aligned at the time of the call instruction (which afterwards pushes
