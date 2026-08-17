@@ -1,10 +1,8 @@
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
+#include "drivers/tty.h"
 #include "drivers/interrupts.h"
 // #include<
-
-#include "drivers/tty.h"
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__)

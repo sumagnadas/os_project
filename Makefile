@@ -29,8 +29,10 @@ boot.o: build_dir boot.s
 
 kernel: build_dir kernel.c drivers/tty.h drivers/config.h drivers/interrupts.c
 	i686-elf-gcc -c kernel.c -o $(BUILD_DIR)/kernel.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c drivers/keyboard.c -o $(BUILD_DIR)/keyboard.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c drivers/tty.c -o $(BUILD_DIR)/tty.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c drivers/interrupts.c -o $(BUILD_DIR)/interrupts.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-ld -r $(BUILD_DIR)/kernel.o $(BUILD_DIR)/interrupts.o -o $(BUILD_DIR)/small_os.knl
+	i686-elf-ld -r $(BUILD_DIR)/tty.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/interrupts.o -o $(BUILD_DIR)/small_os.knl
 
 launch: build_dir iso
 	qemu-system-i386 -cdrom $(BUILD_DIR)/small_os.iso

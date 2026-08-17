@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "interrupts.h"
+#include "keyboard.h"
 #include "config.h"
 
 extern void gdt_flush(uint32_t);
@@ -90,10 +91,35 @@ void idt_init()
 
     for (uint8_t vector = 0; vector < 32; vector++)
     {
-        idt_set_descriptor(vector, isr_stub_table[vector], 0x8E);
+        idt_set_descriptor(vector, isr_stub_table[vector], IDT_INTERRUPT_GATE_32BIT);
         vectors[vector] = true;
     }
 
+    idt_set_descriptor(0x21, (void *)keyboard_handler, IDT_INTERRUPT_GATE_32BIT);
+    vectors[0x21] = true;
+
+    // ICW1
+    ioport_out(PIC1_COMMAND_PORT, 0x11);
+    ioport_out(PIC2_COMMAND_PORT, 0x11);
+
+    // ICW2
+    ioport_out(PIC1_DATA_PORT, 0x20);
+    ioport_out(PIC2_DATA_PORT, 0x28);
+
+    // ICW3
+    ioport_out(PIC1_DATA_PORT, 0x04);
+    ioport_out(PIC2_DATA_PORT, 0x02);
+
+    // ICW4
+    ioport_out(PIC1_DATA_PORT, 0x1);
+    ioport_out(PIC2_DATA_PORT, 0x1);
+
+    // Mask interrupts
+    ioport_out(PIC1_DATA_PORT, 0xff);
+    ioport_out(PIC2_DATA_PORT, 0xff);
+
+    // LOAD IDT
     __asm__ volatile("lidt %0" : : "m"(idtr)); // load the new IDT
-    __asm__ volatile("sti");                   // set the interrupt flag
+    kb_init();
+    __asm__ volatile("sti"); // set the interrupt flag
 }
