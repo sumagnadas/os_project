@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include "keyboard.h"
 #include "keyboard_map.h"
-#include "config.h"
+#include "kernel/config.h"
 #include "tty.h"
 
 void kb_isr()

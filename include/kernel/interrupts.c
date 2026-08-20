@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "interrupts.h"
-#include "keyboard.h"
+#include "drivers/keyboard.h"
 #include "config.h"
 
 extern void gdt_flush(uint32_t);

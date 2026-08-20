@@ -2,7 +2,7 @@
 
 BUILD_DIR := build
 OS_NAME := small_os
-CFLAGS := -ffreestanding -O2 -masm=intel 
+CFLAGS := -ffreestanding -O2 -masm=intel -Iinclude
 
 all: build_dir iso
 
@@ -27,12 +27,12 @@ $(OS_NAME): build_dir kernel boot.o
 boot.o: build_dir boot.s
 	i686-elf-as boot.s -o $(BUILD_DIR)/boot.o	
 
-kernel: build_dir kernel.c drivers/tty.h drivers/config.h drivers/interrupts.c
-	i686-elf-gcc -c kernel.c -o $(BUILD_DIR)/kernel.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-gcc -c drivers/keyboard.c -o $(BUILD_DIR)/keyboard.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-gcc -c drivers/tty.c -o $(BUILD_DIR)/tty.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-gcc -c drivers/interrupts.c -o $(BUILD_DIR)/interrupts.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-ld -r $(BUILD_DIR)/tty.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/interrupts.o -o $(BUILD_DIR)/small_os.knl
+kernel: build_dir main.c include/drivers/tty.h include/kernel/config.h include/kernel/interrupts.c
+	i686-elf-gcc -c include/drivers/keyboard.c -o $(BUILD_DIR)/keyboard.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c include/drivers/tty.c -o $(BUILD_DIR)/tty.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c include/kernel/interrupts.c -o $(BUILD_DIR)/interrupts.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c main.c -o $(BUILD_DIR)/main.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-ld -r $(BUILD_DIR)/tty.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/main.o $(BUILD_DIR)/interrupts.o -o $(BUILD_DIR)/small_os.knl
 
 launch: build_dir iso
 	qemu-system-i386 -cdrom $(BUILD_DIR)/small_os.iso
