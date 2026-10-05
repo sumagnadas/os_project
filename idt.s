@@ -102,12 +102,6 @@ jump_user_code:
 	push eax // current esp
 
 	pushf // eflags
-    // need to think about why this is working
-
-    pop eax
-    and eax, ~(1 << 14)   // clear NT
-    or  eax, (1 << 9)     // ensure IF is set (interrupts enabled in user mode)
-    push eax              // push the sanitized EFLAGS instead of the raw pushf value
 
 	push (3 * 8) | 3 // code selector (ring 3 code with bottom 2 bits set for ring 3)
 	push offset user_code // instruction address to return to
