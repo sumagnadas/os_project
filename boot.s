@@ -42,6 +42,18 @@ doesn't make sense to return from this function as the bootloader is gone.
 .global _start
 .type _start, @function
 .global gdt_flush
+.global set_tss_esp0
+
+flush_tss:
+	mov ax, 0x28 // fifth 8-byte selector, symbolically OR-ed with 0 to set the RPL (requested privilege level).
+	ltr ax
+	ret
+
+set_tss_esp0:
+	mov eax, [esp+4]
+	lea ebx, stack_top
+	mov [eax+4], ebx
+	ret
 
 /* Flush and load GDT */
 gdt_flush:
@@ -76,6 +88,7 @@ _start:
   	
 	/* Setup IDT, GDT and other required stuff */
 	call gdt_install
+	call flush_tss
 	call idt_init
 	
 	/*

@@ -1,8 +1,6 @@
 .intel_syntax noprefix
 
-exception_handler:
-	cli
-	hlt
+.extern exception_handler
 
 .macro isr_err_stub no
 isr_stub_\no:
@@ -70,6 +68,8 @@ isr_stub_table:
 .global keyboard_handler
 
 .extern keyboard_isr
+.extern user_code
+.global jump_user_code
 
 ioport_in:
     mov edx, [esp+4] // port to read from
@@ -88,3 +88,27 @@ keyboard_handler:
     call kb_isr
     popad
     iret
+
+jump_user_code:
+    mov ax, (4 * 8) | 3 // ring 3 data with bottom 2 bits set for ring 3
+	mov ds, ax
+	mov es, ax 
+	mov fs, ax 
+	mov gs, ax // SS is handled by iret
+
+	// set up the stack frame iret expects
+	mov eax, esp
+	push (4 * 8) | 3 // data selector
+	push eax // current esp
+
+	pushf // eflags
+    // need to think about why this is working
+
+    pop eax
+    and eax, ~(1 << 14)   // clear NT
+    or  eax, (1 << 9)     // ensure IF is set (interrupts enabled in user mode)
+    push eax              // push the sanitized EFLAGS instead of the raw pushf value
+
+	push (3 * 8) | 3 // code selector (ring 3 code with bottom 2 bits set for ring 3)
+	push offset user_code // instruction address to return to
+	iret

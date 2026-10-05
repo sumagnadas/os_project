@@ -1,10 +1,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "interrupts.h"
+#include "process.h"
 #include "drivers/keyboard.h"
 #include "config.h"
 
 extern void gdt_flush(uint32_t);
+extern void set_tss_esp0(uint32_t);
 
 /* Reqd structs */
 struct gdt_entry
@@ -38,8 +40,9 @@ typedef struct
     uint32_t base;
 } __attribute__((packed)) idtr_t;
 
-struct gdt_entry gdt[3];
+struct gdt_entry gdt[6];
 struct gdt_ptr gp;
+struct tss TSS = {0};
 
 extern void *isr_stub_table[];
 
@@ -59,12 +62,19 @@ void gdt_set_gate(int num, uint32_t base, uint32_t limit,
 
 void gdt_install(void)
 {
-    gp.limit = (sizeof(struct gdt_entry) * 3) - 1;
+    gp.limit = (sizeof(struct gdt_entry) * 6) - 1;
     gp.base = (uint32_t)&gdt;
 
-    gdt_set_gate(0, 0, 0, 0, 0);                // null descriptor, required
-    gdt_set_gate(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // kernel code
-    gdt_set_gate(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // kernel data
+    gdt_set_gate(0, 0, 0, 0, 0);             // null descriptor, required
+    gdt_set_gate(1, 0, 0xFFFFF, 0x9A, 0xCF); // kernel code
+    gdt_set_gate(2, 0, 0xFFFFF, 0x92, 0xCF); // kernel data
+    gdt_set_gate(3, 0, 0xFFFFF, 0xFA, 0xCF); // user code
+    gdt_set_gate(4, 0, 0xFFFFF, 0xF2, 0xCF); // user data
+
+    // set up tss
+    TSS.ss0 = 0x10;
+    set_tss_esp0((uint32_t)&TSS);
+    gdt_set_gate(5, (uint32_t)&TSS, sizeof(TSS) - 1, 0x89, 0x0);
 
     gdt_flush((uint32_t)&gp);
 }
