@@ -1,12 +1,25 @@
 #include <stdint.h>
 #include <stdbool.h>
+#include "config.h"
 #include "interrupts.h"
 #include "process.h"
 #include "drivers/keyboard.h"
-#include "config.h"
+#include "drivers/tty.h"
 
 extern void gdt_flush(uint32_t);
 extern void set_tss_esp0(uint32_t);
+extern void syscall_stub();
+
+void exception_handler(uint32_t vector, uint32_t error_code)
+{
+    terminal_writestring("EXCEPTION vec=");
+    print_hex(vector);
+    terminal_writestring(" err=");
+    print_hex(error_code);
+    terminal_writestring("\n");
+    for (;;)
+        asm volatile("cli; hlt");
+}
 
 /* Reqd structs */
 struct gdt_entry
@@ -107,6 +120,8 @@ void idt_init()
 
     idt_set_descriptor(0x21, (void *)keyboard_handler, IDT_INTERRUPT_GATE_32BIT);
     vectors[0x21] = true;
+    idt_set_descriptor(0x80, (void *)syscall_stub, 0xEE);
+    vectors[0x80] = true;
 
     // ICW1
     ioport_out(PIC1_COMMAND_PORT, 0x11);

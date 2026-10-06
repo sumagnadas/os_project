@@ -50,9 +50,11 @@ flush_tss:
 	ret
 
 set_tss_esp0:
-	mov eax, [esp+4]
+	push ebx
+	mov eax, [esp+8]
 	lea ebx, stack_top
 	mov [eax+4], ebx
+	pop ebx
 	ret
 
 /* Flush and load GDT */
@@ -105,6 +107,18 @@ _start:
 	sti
 1:	hlt
 	jmp 1b
+
+// just for testing out userspace to ring 0 
+.global syscall_stub
+.extern syscall_handler
+syscall_stub:
+    pushad
+	push eax
+    call syscall_handler
+	pop eax
+    popad
+    iret
+
 
 /*
 Set the size of the _start symbol to the current location '.' minus its start.

@@ -17,17 +17,11 @@
 
 extern void jump_user_code();
 
-void exception_handler()
+void syscall_handler(int val)
 {
-  char buf[64];
-  // simple manual formatting since you may not have sprintf yet
-  terminal_writestring("EXCEPTION vec=");
-  // print_hex(vector);
-  terminal_writestring(" err=");
-  // print_hex(error_code);
+  terminal_writestring("Back in ring 0 via syscall!\n");
+  print_dec(val);
   terminal_writestring("\n");
-  for (;;)
-    asm volatile("cli; hlt");
 }
 
 void kernel_main(void)
@@ -45,14 +39,16 @@ void kernel_main(void)
   terminal_setcolor(VGA_COLOR_BLUE);
   terminal_writestring("Meow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow");
   terminal_writestring("Hello, This is from kernel before jumping!\n");
+
   jump_user_code();
 }
 
 void user_code()
 {
   terminal_writestring("Hello, This is from userspace!\n");
+  asm volatile("mov eax, 30; int 0x80");
+  terminal_writestring("Hello, This is from userspace again!\n");
   for (;;)
-    asm volatile("hlt");
-  // this should crash the os
-  // asm volatile("cli");
+  {
+  }
 }

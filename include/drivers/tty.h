@@ -34,6 +34,8 @@ void terminal_putchar(char c);
 void terminal_write(const char *data, size_t size);
 
 void terminal_writestring(const char *data);
+void print_hex(uint32_t n);
+void print_dec(uint32_t n);
 
 static inline uint8_t vga_entry_color(enum vga_color fg, enum vga_color bg)
 {

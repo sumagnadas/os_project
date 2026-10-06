@@ -94,3 +94,23 @@ void terminal_writestring(const char *data)
 {
     terminal_write(data, strlen(data));
 }
+
+void print_hex(uint32_t n)
+{
+    char hex_chars[] = "0123456789ABCDEF";
+    terminal_writestring("0x");
+    for (int i = 28; i >= 0; i -= 4)
+    {
+        terminal_putchar(hex_chars[(n >> i) & 0xF]);
+    }
+}
+void print_dec(uint32_t n)
+{
+    char hex_chars[] = "0123456789";
+    terminal_writestring("");
+    while (n > 0)
+    {
+        terminal_putchar(hex_chars[(n % 10)]);
+        n /= 10;
+    }
+}
