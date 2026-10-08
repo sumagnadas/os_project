@@ -12,10 +12,19 @@ extern void syscall_stub();
 
 void exception_handler(uint32_t vector, uint32_t error_code)
 {
+
+    uint32_t cr2;
+    asm volatile("mov %%cr2, %0" : "=r"(cr2));
+
     terminal_writestring("EXCEPTION vec=");
     print_hex(vector);
     terminal_writestring(" err=");
     print_hex(error_code);
+    if (vector == 14)
+    {
+        terminal_writestring(" cr2=");
+        print_hex(cr2);
+    }
     terminal_writestring("\n");
     for (;;)
         asm volatile("cli; hlt");

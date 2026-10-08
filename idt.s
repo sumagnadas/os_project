@@ -1,15 +1,19 @@
 .intel_syntax noprefix
 
 .extern exception_handler
+.extern user_stack
 
 .macro isr_err_stub no
 isr_stub_\no:
+    push \no
     call exception_handler
     iret 
 .endm
 
 .macro isr_no_err_stub no
 isr_stub_\no:
+    push 0
+    push \no
     call exception_handler
     iret 
 .endm
@@ -97,11 +101,20 @@ jump_user_code:
 	mov gs, ax // SS is handled by iret
 
 	// set up the stack frame iret expects
-	mov eax, esp
 	push (4 * 8) | 3 // data selector
-	push eax // current esp
+    lea eax, [user_stack + 4096] // push the user stack to switch to
+    push eax
 
-	pushf // eflags
+    // eflags
+	pushf
+    // sanitize it for NT bit. 
+    // Note for self: better to sanitize as it will cause crash
+    // as no prev_tss set since no hardware task switching set
+    // up. EFLAGS cannot be trusted. NT bit (14) has to be cleared.
+    pop eax
+    and eax, ~(1 << 14)
+    or  eax, (1 << 9)
+    push eax
 
 	push (3 * 8) | 3 // code selector (ring 3 code with bottom 2 bits set for ring 3)
 	push offset user_code // instruction address to return to

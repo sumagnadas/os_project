@@ -73,6 +73,17 @@ gdt_flush:
 .flush:
     ret
 
+.global set_paging
+set_paging:
+	mov eax, [esp+4]
+	mov cr3, eax
+	
+	mov eax, cr0
+	or eax, 0x80000001
+	mov cr0, eax
+	ret
+
+.extern init_paging
 _start:
 	/* Initialize stack before jumping into C code as a stack is reqd. */
 	lea esp, stack_top
@@ -92,6 +103,7 @@ _start:
 	call gdt_install
 	call flush_tss
 	call idt_init
+	call init_paging
 	
 	/*
 	Enter the high-level kernel. The ABI requires the stack is 16-byte
@@ -113,9 +125,25 @@ _start:
 .extern syscall_handler
 syscall_stub:
     pushad
+	
+	// push all the arguments
+	push ebp
+	push edi
+	push esi
+	push edx
+	push ecx
+	push ebx
 	push eax
+
     call syscall_handler
+	// pop them
 	pop eax
+	pop ebx
+	pop ecx
+	pop edx
+	pop esi
+	pop edi
+	pop ebp
     popad
     iret
 

@@ -27,12 +27,14 @@ $(OS_NAME): build_dir kernel boot.o
 boot.o: build_dir boot.s
 	i686-elf-as boot.s -o $(BUILD_DIR)/boot.o	
 
-kernel: build_dir main.c include/drivers/tty.h include/kernel/config.h include/kernel/interrupts.c
+kernel: build_dir main.c include/drivers/tty.h include/kernel/config.h include/kernel/interrupts.c include/kernel/memory.c
 	i686-elf-gcc -c include/drivers/keyboard.c -o $(BUILD_DIR)/keyboard.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c include/drivers/tty.c -o $(BUILD_DIR)/tty.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c include/kernel/interrupts.c -o $(BUILD_DIR)/interrupts.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c include/kernel/memory.c -o $(BUILD_DIR)/memory.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+	i686-elf-gcc -c include/kernel/userspace.c -o $(BUILD_DIR)/userspace.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c main.c -o $(BUILD_DIR)/main.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-ld -r $(BUILD_DIR)/tty.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/main.o $(BUILD_DIR)/interrupts.o -o $(BUILD_DIR)/small_os.knl
+	i686-elf-ld -r $(BUILD_DIR)/tty.o $(BUILD_DIR)/keyboard.o $(BUILD_DIR)/main.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/userspace.o $(BUILD_DIR)/interrupts.o -o $(BUILD_DIR)/small_os.knl
 
 launch: build_dir iso
 	qemu-system-i386 -cdrom $(BUILD_DIR)/small_os.iso

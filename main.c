@@ -17,11 +17,18 @@
 
 extern void jump_user_code();
 
-void syscall_handler(int val)
+void syscall_handler(int code, uint32_t arg1, uint32_t arg2, uint32_t arg3)
 {
   terminal_writestring("Back in ring 0 via syscall!\n");
-  print_dec(val);
-  terminal_writestring("\n");
+  switch (code)
+  {
+  case 1:
+    terminal_writestring((char *)arg1);
+    break;
+
+  default:
+    break;
+  }
 }
 
 void kernel_main(void)
@@ -36,19 +43,9 @@ void kernel_main(void)
   terminal_writestring("\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow");
   terminal_setcolor(vga_entry(VGA_COLOR_BLUE, VGA_COLOR_GREEN));
   terminal_writestring("\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\n");
-  terminal_setcolor(VGA_COLOR_BLUE);
+  terminal_setcolor(VGA_COLOR_LIGHT_GREEN);
   terminal_writestring("Meow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow");
   terminal_writestring("Hello, This is from kernel before jumping!\n");
 
   jump_user_code();
-}
-
-void user_code()
-{
-  terminal_writestring("Hello, This is from userspace!\n");
-  asm volatile("mov eax, 30; int 0x80");
-  terminal_writestring("Hello, This is from userspace again!\n");
-  for (;;)
-  {
-  }
 }
