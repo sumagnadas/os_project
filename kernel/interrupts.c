@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include "config.h"
-#include "interrupts.h"
-#include "drivers/keyboard.h"
+#include "kernel/config.h"
+#include "kernel/interrupts.h"
 #include "drivers/tty.h"
+#include "drivers/keyboard.h"
 
 /* Reqd structs */
 typedef struct

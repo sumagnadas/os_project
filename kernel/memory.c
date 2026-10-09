@@ -1,6 +1,6 @@
-#include "memory.h"
-#include "userspace.h"
-#include "interrupts.h"
+#include "kernel/memory.h"
+#include "kernel/userspace.h"
+#include "kernel/interrupts.h"
 
 #define USER_STACK_SIZE 4096 // one page user stack
 #define USER_CODE_PAGE ((uint32_t)user_code & ~0xFFF)

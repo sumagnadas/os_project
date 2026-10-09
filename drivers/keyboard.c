@@ -1,8 +1,8 @@
 #include <stddef.h>
-#include "keyboard.h"
-#include "keyboard_map.h"
+#include "drivers/keyboard.h"
+#include "drivers/keyboard_map.h"
 #include "kernel/config.h"
-#include "tty.h"
+#include "drivers/tty.h"
 
 // Handle keyboard input via interrupts
 // Just print it to the terminal without any storage

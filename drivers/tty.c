@@ -1,4 +1,4 @@
-#include "tty.h"
+#include "drivers/tty.h"
 
 static size_t terminal_row;
 static size_t terminal_column;
