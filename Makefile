@@ -9,7 +9,9 @@ all: build_dir iso
 
 build_dir:
 	mkdir -p $(BUILD_DIR)
-	for i in $(SUBFOLDERS); do mkdir -p $(BUILD_DIR)/$$i; done
+	for i in $(SUBFOLDERS); do \
+		mkdir -p $(BUILD_DIR)/$$i; \
+	done
 
 clean: 
 	rm -rf $(BUILD_DIR)
@@ -34,12 +36,20 @@ kernel.o: kernel/memory.c kernel/interrupts.c kernel/process.c kernel/userspace.
 	i686-elf-gcc -c kernel/memory.c -o $(BUILD_DIR)/kernel/memory.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c kernel/process.c -o $(BUILD_DIR)/kernel/process.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c kernel/userspace.c -o $(BUILD_DIR)/kernel/userspace.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-ld -r $(BUILD_DIR)/kernel/memory.o $(BUILD_DIR)/kernel/process.o $(BUILD_DIR)/kernel/userspace.o $(BUILD_DIR)/kernel/interrupts.o -o $(BUILD_DIR)/lib/kernel.o
+	i686-elf-ld -r \
+		$(BUILD_DIR)/kernel/memory.o \
+		$(BUILD_DIR)/kernel/process.o \
+		$(BUILD_DIR)/kernel/userspace.o \
+		$(BUILD_DIR)/kernel/interrupts.o \
+	-o $(BUILD_DIR)/lib/kernel.o
 
 drivers.o: drivers/keyboard.c drivers/tty.c
 	i686-elf-gcc -c drivers/keyboard.c -o $(BUILD_DIR)/drivers/keyboard.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c drivers/tty.c -o $(BUILD_DIR)/drivers/tty.o $(CFLAGS) -std=gnu99 -Wall -Wextra
-	i686-elf-ld -r $(BUILD_DIR)/drivers/tty.o $(BUILD_DIR)/drivers/keyboard.o -o $(BUILD_DIR)/lib/drivers.o
+	i686-elf-ld -r \
+		$(BUILD_DIR)/drivers/tty.o \
+		$(BUILD_DIR)/drivers/keyboard.o \
+	-o $(BUILD_DIR)/lib/drivers.o
 
 base: kernel.o drivers.o
 	i686-elf-gcc -c main.c -o $(BUILD_DIR)/lib/main.o $(CFLAGS) -std=gnu99 -Wall -Wextra
