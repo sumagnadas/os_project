@@ -1,4 +1,5 @@
 .intel_syntax noprefix
+
 /* Declare constants for the multiboot header. */
 .set ALIGN,    1<<0             /* align loaded modules on page boundaries */
 .set MEMINFO,  1<<1             /* provide memory map */
@@ -20,13 +21,8 @@ forced to be within the first 8 KiB of the kernel file.
 .long CHECKSUM
 
 .include "idt.s"
-/* 
-This allocates room for a small stack by creating a symbol at the bottom of it,
-then allocating 16384 bytes for it, and finally creating a symbol at the top. 
-The stack on x86 must be 16-byte aligned according to the System V ABI standard 
-and de-facto extensions. The compiler will assume the stack is properly aligned 
-and failure to align the stack will result in undefined behavior.
-*/
+
+/* 16KiB Stack for kernel */
 .section .bss
 .align 16
 stack_bottom:
@@ -45,11 +41,13 @@ doesn't make sense to return from this function as the bootloader is gone.
 .global set_tss_esp0
 
 flush_tss:
+	/* Load TSS to task register */
 	mov ax, 0x28 // fifth 8-byte selector, symbolically OR-ed with 0 to set the RPL (requested privilege level).
 	ltr ax
 	ret
 
 set_tss_esp0:
+	/* set TSS.esp0 to the kernel stack */
 	push ebx
 	mov eax, [esp+8]
 	lea ebx, stack_top
@@ -62,22 +60,26 @@ gdt_flush:
     mov eax, [esp+4]   
     lgdt [eax]
 
-    mov ax, 0x10        
+	/* Change data segment */
+    mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
 
+	/* Change code segment */
     jmp 0x08:.flush
 .flush:
     ret
 
 .global set_paging
 set_paging:
+	/* Set paging directory */
 	mov eax, [esp+4]
 	mov cr3, eax
 	
+	/* Set bits for CR0.PG and another bit */
 	mov eax, cr0
 	or eax, 0x80000001
 	mov cr0, eax
@@ -88,39 +90,20 @@ _start:
 	/* Initialize stack before jumping into C code as a stack is reqd. */
 	lea esp, stack_top
 
-	/* 
-	This is a good place to initialize crucial processor state before the
-	high-level kernel is entered. It's best to minimize the early
-	environment where crucial features are offline. Note that the
-	processor is not fully initialized yet: Features such as floating
-	point instructions and instruction set extensions are not initialized
-	yet. The GDT should be loaded here. Paging should be enabled here.
-	C++ features such as global constructors and exceptions will require
-	runtime support to work as well.
-	*/
-  	
-	/* Setup IDT, GDT and other required stuff */
+	/* Initialize paging, GDT, IDT and TSS */
 	call gdt_install
 	call flush_tss
 	call idt_init
 	call init_paging
 	
-	/*
-	Enter the high-level kernel. The ABI requires the stack is 16-byte
-	aligned at the time of the call instruction (which afterwards pushes
-	the return pointer of size 4 bytes). The stack was originally 16-byte
-	aligned above and we've pushed a multiple of 16 bytes to the
-	stack since (pushed 0 bytes so far), so the alignment has thus been
-	preserved and the call is well defined.
-	*/
+	/* Enter the high-level kernel. */
 	call kernel_main
 
-	; cli
 	sti
 1:	hlt
 	jmp 1b
 
-// just for testing out userspace to ring 0 
+// setup for syscall handler
 .global syscall_stub
 .extern syscall_handler
 syscall_stub:

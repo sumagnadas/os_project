@@ -4,6 +4,8 @@
 #include "kernel/config.h"
 #include "tty.h"
 
+// Handle keyboard input via interrupts
+// Just print it to the terminal without any storage
 void kb_isr()
 {
     ioport_out(PIC1_COMMAND_PORT, 0X20);

@@ -1,5 +1,4 @@
 #include "userspace.h"
-#include "drivers/tty.h"
 
 void user_code()
 {

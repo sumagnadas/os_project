@@ -3,6 +3,8 @@
 .extern exception_handler
 .extern user_stack
 
+/* Macros for easier setup of interrupts */
+// Macro for vectors giving back error code
 .macro isr_err_stub no
 isr_stub_\no:
     push \no
@@ -10,6 +12,7 @@ isr_stub_\no:
     iret 
 .endm
 
+// Macro for vectors not giving back any error code
 .macro isr_no_err_stub no
 isr_stub_\no:
     push 0
@@ -18,6 +21,7 @@ isr_stub_\no:
     iret 
 .endm
 
+// Table entry
 .macro dd_stub no
 	.long isr_stub_\no
 .endm
@@ -57,6 +61,7 @@ isr_no_err_stub 29
 isr_err_stub    30
 isr_no_err_stub 31
 
+// Define the stub table for easy reference in interrupts.c
 .altmacro
 .global isr_stub_table
 isr_stub_table:
@@ -67,14 +72,15 @@ isr_stub_table:
 .endr
 .noaltmacro
 
+.extern keyboard_isr
+.extern user_code
+
 .global ioport_in
 .global ioport_out
 .global keyboard_handler
-
-.extern keyboard_isr
-.extern user_code
 .global jump_user_code
 
+// Keyboard handling
 ioport_in:
     mov edx, [esp+4] // port to read from
     in al, dx
@@ -93,6 +99,7 @@ keyboard_handler:
     popad
     iret
 
+// Jump to ring 3 after setting up necessary registers and stack
 jump_user_code:
     mov ax, (4 * 8) | 3 // ring 3 data with bottom 2 bits set for ring 3
 	mov ds, ax

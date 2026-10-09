@@ -2,51 +2,10 @@
 #include <stdbool.h>
 #include "config.h"
 #include "interrupts.h"
-#include "process.h"
 #include "drivers/keyboard.h"
 #include "drivers/tty.h"
 
-extern void gdt_flush(uint32_t);
-extern void set_tss_esp0(uint32_t);
-extern void syscall_stub();
-
-void exception_handler(uint32_t vector, uint32_t error_code)
-{
-
-    uint32_t cr2;
-    asm volatile("mov %%cr2, %0" : "=r"(cr2));
-
-    terminal_writestring("EXCEPTION vec=");
-    print_hex(vector);
-    terminal_writestring(" err=");
-    print_hex(error_code);
-    if (vector == 14)
-    {
-        terminal_writestring(" cr2=");
-        print_hex(cr2);
-    }
-    terminal_writestring("\n");
-    for (;;)
-        asm volatile("cli; hlt");
-}
-
 /* Reqd structs */
-struct gdt_entry
-{
-    uint16_t limit_low;
-    uint16_t base_low;
-    uint8_t base_middle;
-    uint8_t access;
-    uint8_t granularity;
-    uint8_t base_high;
-} __attribute__((packed));
-
-struct gdt_ptr
-{
-    uint16_t limit;
-    uint32_t base;
-} __attribute__((packed));
-
 typedef struct
 {
     uint16_t isr_low;   // The lower 16 bits of the ISR's address
@@ -62,55 +21,59 @@ typedef struct
     uint32_t base;
 } __attribute__((packed)) idtr_t;
 
-struct gdt_entry gdt[6];
-struct gdt_ptr gp;
-struct tss TSS = {0};
-
+// common functions for exception handling
 extern void *isr_stub_table[];
 
-void gdt_set_gate(int num, uint32_t base, uint32_t limit,
-                  uint8_t access, uint8_t gran)
-{
-    gdt[num].base_low = base & 0xFFFF;
-    gdt[num].base_middle = (base >> 16) & 0xFF;
-    gdt[num].base_high = (base >> 24) & 0xFF;
+// functions defined in assembly
+extern void syscall_stub();
 
-    gdt[num].limit_low = limit & 0xFFFF;
-    gdt[num].granularity = (limit >> 16) & 0x0F;
-
-    gdt[num].granularity |= gran & 0xF0;
-    gdt[num].access = access;
-}
-
-void gdt_install(void)
-{
-    gp.limit = (sizeof(struct gdt_entry) * 6) - 1;
-    gp.base = (uint32_t)&gdt;
-
-    gdt_set_gate(0, 0, 0, 0, 0);             // null descriptor, required
-    gdt_set_gate(1, 0, 0xFFFFF, 0x9A, 0xCF); // kernel code
-    gdt_set_gate(2, 0, 0xFFFFF, 0x92, 0xCF); // kernel data
-    gdt_set_gate(3, 0, 0xFFFFF, 0xFA, 0xCF); // user code
-    gdt_set_gate(4, 0, 0xFFFFF, 0xF2, 0xCF); // user data
-
-    // set up tss
-    TSS.ss0 = 0x10;
-    set_tss_esp0((uint32_t)&TSS);
-    gdt_set_gate(5, (uint32_t)&TSS, sizeof(TSS) - 1, 0x89, 0x0);
-
-    gdt_flush((uint32_t)&gp);
-}
-
+// IDT table
 __attribute__((aligned(0x10))) static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for performance
 static idtr_t idtr;
 static bool vectors[IDT_MAX_DESCRIPTORS];
 
+/*
+Basic exception handler for any exception
+Shows the exception vector and the error code along with it
+Then goes in an infinite loop.
+MIGHT print extra info for certain vectors.
+*/
+void exception_handler(uint32_t vector, uint32_t error_code)
+{
+    uint32_t cr2;
+    asm volatile("mov %%cr2, %0" : "=r"(cr2));
+
+    // General exception description
+    terminal_writestring("EXCEPTION vec=");
+    print_hex(vector);
+    terminal_writestring(" err=");
+    print_hex(error_code);
+
+    // Vector specific info
+    switch (vector)
+    {
+    case 14:
+        terminal_writestring(" cr2=");
+        print_hex(cr2);
+        break;
+
+    default:
+        break;
+    }
+    terminal_writestring("\n");
+
+    // infinite loop
+    for (;;)
+        asm volatile("cli; hlt");
+}
+
+// assigns the the idt entry from vector, handler and flags.
 void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
 {
     idt_entry_t *descriptor = &idt[vector];
 
     descriptor->isr_low = (uint32_t)isr & 0xFFFF;
-    descriptor->kernel_cs = 0x08; // this value can be whatever offset your kernel code selector is in your GDT
+    descriptor->kernel_cs = 0x08;
     descriptor->attributes = flags;
     descriptor->isr_high = (uint32_t)isr >> 16;
     descriptor->reserved = 0;
@@ -121,15 +84,19 @@ void idt_init()
     idtr.base = (uintptr_t)&idt[0];
     idtr.limit = (uint16_t)sizeof(idt_entry_t) * IDT_MAX_DESCRIPTORS - 1;
 
+    // Assign exception handlers for exception vectors.
     for (uint8_t vector = 0; vector < 32; vector++)
     {
         idt_set_descriptor(vector, isr_stub_table[vector], IDT_INTERRUPT_GATE_32BIT);
         vectors[vector] = true;
     }
 
+    // keyboard handler
     idt_set_descriptor(0x21, (void *)keyboard_handler, IDT_INTERRUPT_GATE_32BIT);
     vectors[0x21] = true;
-    idt_set_descriptor(0x80, (void *)syscall_stub, 0xEE);
+
+    // syscall setup
+    idt_set_descriptor(0x80, (void *)syscall_stub, IDT_INTERRUPT_GATE_USER);
     vectors[0x80] = true;
 
     // ICW1

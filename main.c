@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include "drivers/tty.h"
 #include "kernel/interrupts.h"
-// #include<
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__)
@@ -17,9 +16,8 @@
 
 extern void jump_user_code();
 
-void syscall_handler(int code, uint32_t arg1, uint32_t arg2, uint32_t arg3)
+void syscall_handler(int code, uint32_t arg1, uint32_t arg2, uint32_t arg3, uint32_t arg4, uint32_t arg5, uint32_t arg6)
 {
-  terminal_writestring("Back in ring 0 via syscall!\n");
   switch (code)
   {
   case 1:
@@ -38,14 +36,22 @@ void kernel_main(void)
 
   /* Terminal test */
   terminal_setcolor(VGA_COLOR_GREEN);
-  terminal_writestring("Hello, kernel World!\nMeowChika\nMeow");
+  terminal_writestring("Hello, kernel World!\nKernel testing");
   terminal_setcolor(VGA_COLOR_RED);
-  terminal_writestring("\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow");
+  terminal_writestring("\nColor Testing");
   terminal_setcolor(vga_entry(VGA_COLOR_BLUE, VGA_COLOR_GREEN));
-  terminal_writestring("\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\n");
+  terminal_writestring("\nColor mixing");
   terminal_setcolor(VGA_COLOR_LIGHT_GREEN);
-  terminal_writestring("Meow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow\nMeow");
+  terminal_writestring("\nColor brightening\n");
   terminal_writestring("Hello, This is from kernel before jumping!\n");
 
+  /* Number display testing*/
+  terminal_writestring("This is a number, ");
+  print_dec(189);
+  terminal_writestring(" and this is a hex, ");
+  print_hex(0x40);
+  terminal_putchar('\n');
+
+  // Jump to userspace after all set up.
   jump_user_code();
 }

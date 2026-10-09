@@ -13,6 +13,9 @@ size_t strlen(const char *str)
         len++;
     return len;
 }
+
+/* Fundamental functions for writing to terminal */
+// Initialize terminal
 void terminal_initialize(void)
 {
     terminal_row = 0;
@@ -30,16 +33,20 @@ void terminal_initialize(void)
     }
 }
 
+// Set color (fg, bg) for terminal
 void terminal_setcolor(uint8_t color)
 {
     terminal_color = color;
 }
 
+// Set character at location (x,y) in the terminal
 void terminal_putentryat(char c, uint8_t color, size_t x, size_t y)
 {
     const size_t index = y * VGA_WIDTH + x;
     terminal_buffer[index] = vga_entry(c, color);
 }
+
+// Move the terminal by one line up
 void terminal_refresh()
 {
     for (size_t y = 1; y < VGA_HEIGHT; y++)
@@ -55,6 +62,7 @@ void terminal_refresh()
         terminal_buffer[(VGA_HEIGHT - 1) * VGA_WIDTH + x] = vga_entry(' ', terminal_color);
 }
 
+// Write character to current cursor position
 void terminal_putchar(char c)
 {
     switch (c)
@@ -84,17 +92,18 @@ void terminal_putchar(char c)
     }
 }
 
+/* String printing */
 void terminal_write(const char *data, size_t size)
 {
     for (size_t i = 0; i < size; i++)
         terminal_putchar(data[i]);
 }
-
 void terminal_writestring(const char *data)
 {
     terminal_write(data, strlen(data));
 }
 
+/* Printing numbers */
 void print_hex(uint32_t n)
 {
     char hex_chars[] = "0123456789ABCDEF";
@@ -106,11 +115,19 @@ void print_hex(uint32_t n)
 }
 void print_dec(uint32_t n)
 {
-    char hex_chars[] = "0123456789";
-    terminal_writestring("");
+    char dec_chars[] = "0123456789";
+    uint32_t nr = 0;
+
+    // reverse number for printing;
     while (n > 0)
     {
-        terminal_putchar(hex_chars[(n % 10)]);
+        nr *= 10;
+        nr += n % 10;
         n /= 10;
+    }
+    while (nr > 0)
+    {
+        terminal_putchar((nr % 10) + 0x30);
+        nr /= 10;
     }
 }
