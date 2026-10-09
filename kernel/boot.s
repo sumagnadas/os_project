@@ -20,7 +20,7 @@ forced to be within the first 8 KiB of the kernel file.
 .long FLAGS
 .long CHECKSUM
 
-.include "idt.s"
+.include "kernel/idt.s"
 
 /* 16KiB Stack for kernel */
 .section .bss

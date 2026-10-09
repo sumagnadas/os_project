@@ -26,8 +26,8 @@ iso: build_dir $(OS_NAME)
 $(OS_NAME): build_dir base boot.o
 	i686-elf-gcc -T linker.ld -o $(BUILD_DIR)/$(OS_NAME) $(CFLAGS) -nostdlib $(BUILD_DIR)/lib/boot.o $(BUILD_DIR)/base.knl -lgcc
 
-boot.o: build_dir boot.s
-	i686-elf-as boot.s -o $(BUILD_DIR)/lib/boot.o
+boot.o: build_dir kernel/boot.s
+	i686-elf-as kernel/boot.s -o $(BUILD_DIR)/lib/boot.o
 
 kernel.o: kernel/memory.c kernel/interrupts.c kernel/process.c kernel/userspace.c
 	i686-elf-gcc -c kernel/interrupts.c -o $(BUILD_DIR)/kernel/interrupts.o $(CFLAGS) -std=gnu99 -Wall -Wextra
