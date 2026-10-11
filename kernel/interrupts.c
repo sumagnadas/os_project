@@ -2,8 +2,10 @@
 #include <stdbool.h>
 #include "kernel/config.h"
 #include "kernel/interrupts.h"
+#include "kernel/helpers.h"
 #include "drivers/tty.h"
 #include "drivers/keyboard.h"
+#include "kernel/memory.h"
 
 /* Reqd structs */
 typedef struct
@@ -26,11 +28,13 @@ extern void *isr_stub_table[];
 
 // functions defined in assembly
 extern void syscall_stub();
+extern void timer_handler();
 
 // IDT table
 __attribute__((aligned(0x10))) static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for performance
 static idtr_t idtr;
 static bool vectors[IDT_MAX_DESCRIPTORS];
+uint64_t lapic_base;
 
 /*
 Basic exception handler for any exception
@@ -99,6 +103,9 @@ void idt_init()
     idt_set_descriptor(0x80, (void *)syscall_stub, IDT_INTERRUPT_GATE_USER);
     vectors[0x80] = true;
 
+    idt_set_descriptor(0x20, (void *)timer_handler, IDT_INTERRUPT_GATE_32BIT);
+
+    /* Disable PIC */
     // ICW1
     ioport_out(PIC1_COMMAND_PORT, 0x11);
     ioport_out(PIC2_COMMAND_PORT, 0x11);
@@ -119,8 +126,43 @@ void idt_init()
     ioport_out(PIC1_DATA_PORT, 0xff);
     ioport_out(PIC2_DATA_PORT, 0xff);
 
+    // kb_init();
     // LOAD IDT
     __asm__ volatile("lidt %0" : : "m"(idtr)); // load the new IDT
-    kb_init();
-    __asm__ volatile("sti"); // set the interrupt flag
+    __asm__ volatile("sti");                   // set the interrupt flag
+}
+
+/* APIC */
+void init_lapic_timer(void);
+void enable_apic(void)
+{
+    uint64_t base = read_msr(IA32_APIC_BASE_MSR);
+    base |= (1 << 11); // enable bit
+    write_msr(IA32_APIC_BASE_MSR, base);
+
+    uint64_t a = read_msr(0x1b);
+
+    lapic_base = (a & 0xFFFFF000);
+    map_lapic(lapic_base);
+
+    init_lapic_timer();
+}
+
+// Black magic at hardware level.
+void init_lapic_timer(void)
+{
+    LAPIC_REG(0xF0) = 0x1FF;
+    LAPIC_REG(0x3E0) = 0x3;
+    LAPIC_REG(0x380) = 0x1000000;
+    LAPIC_REG(0x320) = 0x20 | 0x20000; // vector 0x20, bit17=periodic
+}
+
+int val = 0;
+void timer_interrupt(void)
+{
+    val++;
+    terminal_writestring("Timer int ");
+    print_dec(val);
+    terminal_putchar('\n');
+    LAPIC_REG(0xB0) = 0; // EOI — any write, not a port_out like the PIC
 }

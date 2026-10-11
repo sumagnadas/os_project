@@ -105,3 +105,19 @@ void init_paging(void)
 
     set_paging((uint32_t)pg_dir);
 }
+
+__attribute__((aligned(4096))) uint32_t lapic_page_table[1024];
+
+void map_lapic(uint32_t lapic_base)
+{
+    uint32_t pd_index = lapic_base >> 22;           // which PDE this address needs
+    uint32_t pt_index = (lapic_base >> 12) & 0x3FF; // which entry within that PT
+
+    for (int i = 0; i < 1024; i++)
+        lapic_page_table[i] = 0x2; // not present by default
+
+    lapic_page_table[pt_index] = lapic_base | 0x3; // present, R/W, kernel-only
+    pg_dir[pd_index] = ((uint32_t)lapic_page_table) | 0x3;
+
+    asm volatile("invlpg [%0]" ::"r"(lapic_base) : "memory");
+}

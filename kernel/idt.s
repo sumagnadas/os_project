@@ -79,6 +79,7 @@ isr_stub_table:
 .global ioport_out
 .global keyboard_handler
 .global jump_user_code
+.global timer_handler
 
 // Keyboard handling
 ioport_in:
@@ -96,6 +97,13 @@ keyboard_handler:
     pushad
     cld
     call kb_isr
+    popad
+    iret
+
+timer_handler:
+    pushad
+    cld
+    call timer_interrupt
     popad
     iret
 

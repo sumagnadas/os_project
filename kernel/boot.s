@@ -92,9 +92,10 @@ _start:
 
 	/* Initialize paging, GDT, IDT and TSS */
 	call gdt_install
-	call flush_tss
-	call idt_init
 	call init_paging
+	call flush_tss
+	call enable_apic
+	call idt_init
 	
 	/* Enter the high-level kernel. */
 	call kernel_main
