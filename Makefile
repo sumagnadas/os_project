@@ -1,7 +1,7 @@
 .PHONY: all
 
 BUILD_DIR := build
-SUBFOLDERS := lib kernel drivers
+SUBFOLDERS := lib kernel/interrupts drivers
 OS_NAME := small_os
 CFLAGS := -ffreestanding -O2 -masm=intel -Iinclude
 
@@ -31,8 +31,12 @@ $(OS_NAME): build_dir base boot.o
 boot.o: build_dir kernel/boot.s
 	i686-elf-as kernel/boot.s -o $(BUILD_DIR)/lib/boot.o
 
-kernel.o: kernel/memory.c kernel/interrupts.c kernel/process.c kernel/userspace.c
-	i686-elf-gcc -c kernel/interrupts.c -o $(BUILD_DIR)/kernel/interrupts.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+kernel.o: kernel/memory.c kernel/interrupts/*.c kernel/process.c kernel/userspace.c
+	for f in kernel/interrupts/*.c; do \
+		name=$$(basename $$f .c); \
+		i686-elf-gcc -c $$f -o $(BUILD_DIR)/kernel/interrupts/$$name.o $(CFLAGS) -std=gnu99 -Wall -Wextra; \
+	done
+	i686-elf-ld -r $(BUILD_DIR)/kernel/interrupts/*.o -o $(BUILD_DIR)/kernel/interrupts.o
 	i686-elf-gcc -c kernel/memory.c -o $(BUILD_DIR)/kernel/memory.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c kernel/process.c -o $(BUILD_DIR)/kernel/process.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c kernel/userspace.c -o $(BUILD_DIR)/kernel/userspace.o $(CFLAGS) -std=gnu99 -Wall -Wextra
@@ -43,12 +47,10 @@ kernel.o: kernel/memory.c kernel/interrupts.c kernel/process.c kernel/userspace.
 		$(BUILD_DIR)/kernel/interrupts.o \
 	-o $(BUILD_DIR)/lib/kernel.o
 
-drivers.o: drivers/keyboard.c drivers/tty.c
-	i686-elf-gcc -c drivers/keyboard.c -o $(BUILD_DIR)/drivers/keyboard.o $(CFLAGS) -std=gnu99 -Wall -Wextra
+drivers.o: drivers/tty.c
 	i686-elf-gcc -c drivers/tty.c -o $(BUILD_DIR)/drivers/tty.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-ld -r \
 		$(BUILD_DIR)/drivers/tty.o \
-		$(BUILD_DIR)/drivers/keyboard.o \
 	-o $(BUILD_DIR)/lib/drivers.o
 
 base: kernel.o drivers.o

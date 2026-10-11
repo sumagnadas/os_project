@@ -1,13 +1,7 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include "kernel/config.h"
-#include "kernel/interrupts.h"
-#include "kernel/helpers.h"
-#include "drivers/tty.h"
-#include "drivers/keyboard.h"
+#include "kernel/interrupts/interrupts.h"
+#include "kernel/interrupts/idt.h"
 #include "kernel/memory.h"
 
-/* Reqd structs */
 typedef struct
 {
     uint16_t isr_low;   // The lower 16 bits of the ISR's address
@@ -23,53 +17,10 @@ typedef struct
     uint32_t base;
 } __attribute__((packed)) idtr_t;
 
-// common functions for exception handling
-extern void *isr_stub_table[];
-
-// functions defined in assembly
-extern void syscall_stub();
-extern void timer_handler();
-
 // IDT table
 __attribute__((aligned(0x10))) static idt_entry_t idt[256]; // Create an array of IDT entries; aligned for performance
 static idtr_t idtr;
 static bool vectors[IDT_MAX_DESCRIPTORS];
-uint64_t lapic_base;
-
-/*
-Basic exception handler for any exception
-Shows the exception vector and the error code along with it
-Then goes in an infinite loop.
-MIGHT print extra info for certain vectors.
-*/
-void exception_handler(uint32_t vector, uint32_t error_code)
-{
-    uint32_t cr2;
-    asm volatile("mov %%cr2, %0" : "=r"(cr2));
-
-    // General exception description
-    terminal_writestring("EXCEPTION vec=");
-    print_hex(vector);
-    terminal_writestring(" err=");
-    print_hex(error_code);
-
-    // Vector specific info
-    switch (vector)
-    {
-    case 14:
-        terminal_writestring(" cr2=");
-        print_hex(cr2);
-        break;
-
-    default:
-        break;
-    }
-    terminal_writestring("\n");
-
-    // infinite loop
-    for (;;)
-        asm volatile("cli; hlt");
-}
 
 // assigns the the idt entry from vector, handler and flags.
 void idt_set_descriptor(uint8_t vector, void *isr, uint8_t flags)
@@ -103,7 +54,9 @@ void idt_init()
     idt_set_descriptor(0x80, (void *)syscall_stub, IDT_INTERRUPT_GATE_USER);
     vectors[0x80] = true;
 
+    // timer handler
     idt_set_descriptor(0x20, (void *)timer_handler, IDT_INTERRUPT_GATE_32BIT);
+    vectors[0x20] = true;
 
     /* Disable PIC */
     // ICW1
@@ -130,39 +83,4 @@ void idt_init()
     // LOAD IDT
     __asm__ volatile("lidt %0" : : "m"(idtr)); // load the new IDT
     __asm__ volatile("sti");                   // set the interrupt flag
-}
-
-/* APIC */
-void init_lapic_timer(void);
-void enable_apic(void)
-{
-    uint64_t base = read_msr(IA32_APIC_BASE_MSR);
-    base |= (1 << 11); // enable bit
-    write_msr(IA32_APIC_BASE_MSR, base);
-
-    uint64_t a = read_msr(0x1b);
-
-    lapic_base = (a & 0xFFFFF000);
-    map_lapic(lapic_base);
-
-    init_lapic_timer();
-}
-
-// Black magic at hardware level.
-void init_lapic_timer(void)
-{
-    LAPIC_REG(0xF0) = 0x1FF;
-    LAPIC_REG(0x3E0) = 0x3;
-    LAPIC_REG(0x380) = 0x1000000;
-    LAPIC_REG(0x320) = 0x20 | 0x20000; // vector 0x20, bit17=periodic
-}
-
-int val = 0;
-void timer_interrupt(void)
-{
-    val++;
-    terminal_writestring("Timer int ");
-    print_dec(val);
-    terminal_putchar('\n');
-    LAPIC_REG(0xB0) = 0; // EOI — any write, not a port_out like the PIC
 }

@@ -1,14 +1,14 @@
-#include <stddef.h>
-#include "drivers/keyboard.h"
+#include "kernel/interrupts/interrupts.h"
+#include "kernel/interrupts/apic.h"
 #include "drivers/keyboard_map.h"
-#include "kernel/config.h"
+#include "kernel/interrupts/keyboard.h"
 #include "drivers/tty.h"
 
 // Handle keyboard input via interrupts
 // Just print it to the terminal without any storage
 void kb_isr()
 {
-    ioport_out(PIC1_COMMAND_PORT, 0X20);
+    LAPIC_REG(0xB0) = 0; // EOI — any write, not a port_out like the PIC
     uint8_t status = ioport_in(KEYBOARD_STATUS_PORT);
     if (status & 0x1)
     {
@@ -17,11 +17,4 @@ void kb_isr()
             return;
         terminal_putchar(keyboard_map[keycode]);
     }
-}
-
-void kb_init()
-{
-    // unmask interrupt
-    // 0xFD = 1111 1101
-    ioport_out(PIC1_DATA_PORT, 0xFD);
 }

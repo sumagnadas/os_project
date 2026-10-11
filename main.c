@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "drivers/tty.h"
-#include "kernel/interrupts.h"
+#include "kernel/interrupts/interrupts.h"
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__)
