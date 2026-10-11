@@ -108,14 +108,13 @@ void print_hex(uint32_t n)
 {
     char hex_chars[] = "0123456789ABCDEF";
     terminal_writestring("0x");
-    for (int i = 28; i >= 0; i -= 4)
+    for (int i = 32; i >= 0; i -= 4)
     {
         terminal_putchar(hex_chars[(n >> i) & 0xF]);
     }
 }
 void print_dec(uint32_t n)
 {
-    char dec_chars[] = "0123456789";
     uint32_t nr = 0;
 
     // reverse number for printing;

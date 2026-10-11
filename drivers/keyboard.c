@@ -13,7 +13,7 @@ void kb_isr()
     if (status & 0x1)
     {
         uint8_t keycode = ioport_in(KEYBOARD_DATA_PORT);
-        if (keycode < 0 || keycode >= 128)
+        if (keycode >= 128)
             return;
         terminal_putchar(keyboard_map[keycode]);
     }
