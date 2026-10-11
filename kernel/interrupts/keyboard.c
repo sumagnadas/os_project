@@ -1,8 +1,8 @@
 #include "kernel/interrupts/interrupts.h"
 #include "kernel/interrupts/apic.h"
-#include "drivers/keyboard_map.h"
+#include "kernel/interrupts/keyboard_map.h"
 #include "kernel/interrupts/keyboard.h"
-#include "drivers/tty.h"
+#include "kernel/video/tty.h"
 
 // Handle keyboard input via interrupts
 // Just print it to the terminal without any storage

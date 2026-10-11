@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include "drivers/tty.h"
+#include "kernel/video/tty.h"
 #include "kernel/interrupts/interrupts.h"
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */

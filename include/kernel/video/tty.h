@@ -1,6 +1,10 @@
 #include <stdint.h>
 #include <stddef.h>
-#include "kernel/config.h"
+
+/* VGA configuration */
+#define VGA_WIDTH 80
+#define VGA_HEIGHT 25
+#define VGA_MEMORY 0xB8000
 
 /* Hardware text mode color constants. */
 enum vga_color

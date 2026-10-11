@@ -2,7 +2,7 @@
 #include "kernel/interrupts/interrupts.h"
 #include "kernel/interrupts/apic.h"
 #include "kernel/helpers.h"
-#include "drivers/tty.h"
+#include "kernel/video/tty.h"
 #include "kernel/memory.h"
 
 uint64_t volatile lapic_base;

@@ -1,5 +1,5 @@
 #include "kernel/interrupts/interrupts.h"
-#include "drivers/tty.h"
+#include "kernel/video/tty.h"
 
 /*
 Basic exception handler for any exception

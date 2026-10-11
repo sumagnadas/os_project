@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include "kernel/config.h"
 
 #define IDT_MAX_DESCRIPTORS 256
 #define PIC1_COMMAND_PORT 0X20
