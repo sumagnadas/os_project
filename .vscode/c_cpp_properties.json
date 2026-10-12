@@ -2,11 +2,10 @@
     "configurations": [
         {
             "name": "x86",
-            "compileCommands": "${workspaceFolder}/compile_commands.json",
             "compilerPath": "/mnt/Linuxtra/build_tools/bin/i686-elf-gcc",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/mnt/Linuxtra/build_tools/lib/gcc/i686-elf/16.2.0/include/**"
+                "${workspaceFolder}/include",
+                "/mnt/Linuxtra/build_tools/lib/gcc/i686-elf/16.2.0/include/"
             ],
             "defines": [
                 "__ELF__",
@@ -16,9 +15,9 @@
             "intelliSenseMode": "linux-gcc-x86",
             "cppStandard": "c++11",
             "compilerArgs": [
-                "-U__linux__",
-                "-U__unix__",
-                "-U__gnu_linux__"
+                "-masm=intel",
+                "-ffreestanding",
+                "-std=gnu99"
             ]
         }
     ],
