@@ -1,6 +1,5 @@
 #include "kernel/interrupts/interrupts.h"
 #include "kernel/interrupts/idt.h"
-#include "kernel/memory.h"
 
 typedef struct
 {

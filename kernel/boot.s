@@ -14,13 +14,53 @@ search for this signature in the first 8 KiB of the kernel file, aligned at a
 32-bit boundary. The signature is in its own section so the header can be
 forced to be within the first 8 KiB of the kernel file.
 */
-.section .multiboot
+.section .multiboot, "a"
 .align 4
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
 
 .include "kernel/idt.s"
+
+.section .text.boot
+.global _start
+_start:
+    lea esp, boot_stack_top
+
+    mov ecx, offset boot_page_table
+	mov edx, 0
+.fill:
+    mov eax, edx
+    shl eax, 12
+    or  eax, 0x3
+    mov [ecx + edx*4], eax
+    inc edx
+    cmp edx, 1024
+    jl .fill
+
+    mov eax, offset boot_page_table
+    or  eax, 0x3
+    mov [boot_page_dir], eax
+    mov [boot_page_dir + 768*4], eax
+
+    mov eax, offset boot_page_dir
+    mov cr3, eax
+    mov eax, cr0
+    or  eax, 0x80000001
+    mov cr0, eax
+
+    lea ecx, [higher_half_start]
+    jmp ecx
+
+.size _start, . - _start
+
+.section .bss.boot
+.align 4096
+boot_page_dir:   .skip 4096
+boot_page_table: .skip 4096
+.align 16
+boot_stack_bottom: .skip 4096
+boot_stack_top:
 
 /* 16KiB Stack for kernel */
 .section .bss
@@ -86,7 +126,7 @@ set_paging:
 	ret
 
 .extern init_paging
-_start:
+higher_half_start:
 	/* Initialize stack before jumping into C code as a stack is reqd. */
 	lea esp, stack_top
 
@@ -132,8 +172,3 @@ syscall_stub:
     iret
 
 
-/*
-Set the size of the _start symbol to the current location '.' minus its start.
-This is useful when debugging or when you implement call tracing.
-*/
-.size _start, . - _start

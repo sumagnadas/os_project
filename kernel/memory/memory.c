@@ -1,11 +1,11 @@
-#include "kernel/memory.h"
+#include "kernel/memory/memory.h"
 #include "kernel/userspace.h"
 #include "kernel/interrupts/interrupts.h"
 
 #define USER_STACK_SIZE 4096 // one page user stack
-#define USER_CODE_PAGE ((uint32_t)user_code & ~0xFFF)
+#define USER_CODE_PAGE (((uint32_t)user_code & ~0xFFF) - 0xC0000000)
 
-#define USER_STACK_PAGE ((uint32_t)(user_stack) & ~0xFFF)
+#define USER_STACK_PAGE (((uint32_t)(user_stack) & ~0xFFF) - 0xC0000000)
 
 struct gdt_entry
 {
@@ -95,7 +95,10 @@ void init_paging(void)
         pg_table[i] = (i * 0x1000) | 0x3; // identity map 0-4MB: P | R/W | U/S
         pg_dir[i] = 0x2;                  // not present
     }
-    pg_dir[0] = ((uint32_t)pg_table) | 0x7;
+    pg_dir[0] = (((uint32_t)pg_table) - 0xC0000000) | 0x7;
+
+    // higher half kernel
+    pg_dir[768] = (((uint32_t)pg_table) - 0xC0000000) | 0x7;
 
     // user page setup
     int code_idx = USER_CODE_PAGE / 0x1000;
@@ -103,7 +106,7 @@ void init_paging(void)
     pg_table[stack_idx] = USER_STACK_PAGE | 0x7;
     pg_table[code_idx] = USER_CODE_PAGE | 0x7;
 
-    set_paging((uint32_t)pg_dir);
+    set_paging((uint32_t)pg_dir - 0xC0000000);
 }
 
 __attribute__((aligned(4096))) uint32_t lapic_page_table[1024];
@@ -120,7 +123,7 @@ void map_lapic(uint32_t lapic_base, uint32_t ioapic_base)
         lapic_page_table[i] = 0x2; // not present by default
 
     lapic_page_table[lapic_pt_index] = lapic_base | 0x3; // present, R/W, kernel-only
-    pg_dir[lapic_pd_index] = ((uint32_t)lapic_page_table) | 0x3;
+    pg_dir[lapic_pd_index] = (((uint32_t)lapic_page_table) - 0xC0000000) | 0x3;
     if (ioapic_pd_index == lapic_pd_index)
     {
         lapic_page_table[ioapic_pt_index] = ioapic_base | 0x3;
@@ -130,7 +133,7 @@ void map_lapic(uint32_t lapic_base, uint32_t ioapic_base)
         for (int i = 0; i < 1024; i++)
             ioapic_page_table[i] = 0x2;                         // not present by default
         ioapic_page_table[ioapic_pt_index] = ioapic_base | 0x3; // present, R/W, kernel-only
-        pg_dir[ioapic_pd_index] = ((uint32_t)ioapic_page_table) | 0x3;
+        pg_dir[ioapic_pd_index] = (((uint32_t)ioapic_page_table) - 0xC0000000) | 0x3;
     }
     asm volatile("invlpg [%0]" ::"r"(lapic_base) : "memory");
     asm volatile("invlpg [%0]" ::"r"(ioapic_base) : "memory");

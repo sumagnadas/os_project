@@ -3,7 +3,7 @@
 #include "kernel/interrupts/apic.h"
 #include "kernel/helpers.h"
 #include "kernel/video/tty.h"
-#include "kernel/memory.h"
+#include "kernel/memory/memory.h"
 
 uint64_t volatile lapic_base;
 /* APIC */
