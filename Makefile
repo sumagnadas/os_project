@@ -4,7 +4,6 @@ BUILD_DIR := build
 FOLDERS := lib kernel
 OS_NAME := small_os
 CFLAGS := -ffreestanding -O2 -masm=intel -Iinclude
-LDFLAGS += -Wl,-z,noseparate-code
 
 SUBFOLDERS += $(shell find $(FOLDERS) -maxdepth 1 -mindepth 1 -type d 2> /dev/null)
 SUBFOLDERS += $(FOLDERS)
@@ -36,7 +35,7 @@ $(BUILD_DIR)/$(OS_NAME): build_dir $(BUILD_DIR)/base.knl $(BUILD_DIR)/lib/boot.o
 $(BUILD_DIR)/lib/boot.o: build_dir kernel/boot.s
 	i686-elf-as kernel/boot.s -o $(BUILD_DIR)/lib/boot.o
 
-$(BUILD_DIR)/lib/kernel.o: kernel/interrupts/*.c kernel/video/*.c kernel/memory/*.c kernel/process.c kernel/userspace.c
+$(BUILD_DIR)/lib/kernel.o: kernel/interrupts/*.c kernel/video/*.c kernel/memory/*.c kernel/process.c kernel/userspace.c kernel/misc/*.c
 	for f in kernel/interrupts/*.c; do \
 		name=$$(basename $$f .c); \
 		i686-elf-gcc -c $$f -o $(BUILD_DIR)/kernel/interrupts/$$name.o $(CFLAGS) -std=gnu99 -Wall -Wextra; \
@@ -55,6 +54,12 @@ $(BUILD_DIR)/lib/kernel.o: kernel/interrupts/*.c kernel/video/*.c kernel/memory/
 	done
 	i686-elf-ld -r $(BUILD_DIR)/kernel/memory/*.o -o $(BUILD_DIR)/kernel/memory.o
 
+	for f in kernel/misc/*.c; do \
+		name=$$(basename $$f .c); \
+		i686-elf-gcc -c $$f -o $(BUILD_DIR)/kernel/misc/$$name.o $(CFLAGS) -std=gnu99 -Wall -Wextra; \
+	done
+	i686-elf-ld -r $(BUILD_DIR)/kernel/misc/*.o -o $(BUILD_DIR)/kernel/misc.o
+
 	i686-elf-gcc -c kernel/process.c -o $(BUILD_DIR)/kernel/process.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-gcc -c kernel/userspace.c -o $(BUILD_DIR)/kernel/userspace.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-ld -r \
@@ -63,9 +68,10 @@ $(BUILD_DIR)/lib/kernel.o: kernel/interrupts/*.c kernel/video/*.c kernel/memory/
 		$(BUILD_DIR)/kernel/userspace.o \
 		$(BUILD_DIR)/kernel/interrupts.o \
 		$(BUILD_DIR)/kernel/video.o \
+		$(BUILD_DIR)/kernel/misc.o \
 	-o $(BUILD_DIR)/lib/kernel.o
 
-$(BUILD_DIR)/base.knl: $(BUILD_DIR)/lib/kernel.o
+$(BUILD_DIR)/base.knl: $(BUILD_DIR)/lib/kernel.o main.c
 	i686-elf-gcc -c main.c -o $(BUILD_DIR)/lib/main.o $(CFLAGS) -std=gnu99 -Wall -Wextra
 	i686-elf-ld -r \
 		$(BUILD_DIR)/lib/main.o \

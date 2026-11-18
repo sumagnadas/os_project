@@ -1,7 +1,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "kernel/video/tty.h"
+#include "kernel/memory/alloc.h"
 #include "kernel/interrupts/interrupts.h"
+// extern struct bitmap pfa;
 
 /* Check if the compiler thinks you are targeting the wrong operating system. */
 #if defined(__linux__)
@@ -45,6 +47,16 @@ void kernel_main(void)
   terminal_writestring("\nColor brightening\n");
   terminal_writestring("Hello, This is from kernel before jumping!\n");
 
+  // for (int i = 0; i < 100; i += 4)
+  // {
+  //   uint32_t n = 0;
+  //   n |= pfa.free[i] << 24;
+  //   n |= pfa.free[i + 1] << 16;
+  //   n |= pfa.free[i + 2] << 8;
+  //   n |= pfa.free[i + 3];
+  //   print_hex(n);
+  // }
+  terminal_writestring("\n");
   /* Number display testing*/
   terminal_writestring("This is a number, ");
   print_dec(189);

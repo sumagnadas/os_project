@@ -26,6 +26,7 @@ SECTIONS
 	/* First put the multiboot header, as it is required to be put very early
 	   in the image or the bootloader won't recognize the file format.
 	   Next we'll put the .text section. */
+	boot_start = .;
 	.multiboot ALIGN(4) : AT(ADDR(.multiboot))
 	{
 		*(.multiboot)
@@ -40,9 +41,10 @@ SECTIONS
 	{
 		*(.bss.boot)
 	}
+	boot_end = .;
 
 	. += KERNEL_VIRTUAL_BASE;
-
+	kernel_start = . - KERNEL_VIRTUAL_BASE;
 	.text ALIGN(4K) : AT(ADDR(.text) - KERNEL_VIRTUAL_BASE)
 	{
 		*(.text)
@@ -69,4 +71,5 @@ SECTIONS
 
 	/* The compiler may produce other sections, by default it will put them in
 	   a segment with the same name. Simply add stuff here as needed. */
+	kernel_end = LOADADDR(.bss) + SIZEOF(.bss);
 }

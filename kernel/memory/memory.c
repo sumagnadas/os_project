@@ -3,8 +3,7 @@
 #include "kernel/interrupts/interrupts.h"
 
 #define USER_STACK_SIZE 4096 // one page user stack
-#define USER_CODE_PAGE (((uint32_t)user_code & ~0xFFF) - 0xC0000000)
-
+#define USER_CODE_PAGE (((uint32_t)(user_code) & ~0xFFF) - 0xC0000000)
 #define USER_STACK_PAGE (((uint32_t)(user_stack) & ~0xFFF) - 0xC0000000)
 
 struct gdt_entry
@@ -95,8 +94,6 @@ void init_paging(void)
         pg_table[i] = (i * 0x1000) | 0x3; // identity map 0-4MB: P | R/W | U/S
         pg_dir[i] = 0x2;                  // not present
     }
-    pg_dir[0] = (((uint32_t)pg_table) - 0xC0000000) | 0x7;
-
     // higher half kernel
     pg_dir[768] = (((uint32_t)pg_table) - 0xC0000000) | 0x7;
 

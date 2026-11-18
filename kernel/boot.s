@@ -7,25 +7,20 @@
 .set MAGIC,    0x1BADB002       /* 'magic number' lets bootloader find the header */
 .set CHECKSUM, -(MAGIC + FLAGS) /* checksum of above, to prove we are multiboot */
 
-/* 
-Declare a multiboot header that marks the program as a kernel. These are magic
-values that are documented in the multiboot standard. The bootloader will
-search for this signature in the first 8 KiB of the kernel file, aligned at a
-32-bit boundary. The signature is in its own section so the header can be
-forced to be within the first 8 KiB of the kernel file.
-*/
 .section .multiboot, "a"
 .align 4
 .long MAGIC
 .long FLAGS
 .long CHECKSUM
 
-.include "kernel/idt.s"
-
+/* Initial bootstrapping for basic page table setup before switching to higher level kernel */
 .section .text.boot
 .global _start
 _start:
     lea esp, boot_stack_top
+
+	mov [mbi_magic], eax
+	mov [mbi_addr], ebx
 
     mov ecx, offset boot_page_table
 	mov edx, 0
@@ -61,6 +56,8 @@ boot_page_table: .skip 4096
 .align 16
 boot_stack_bottom: .skip 4096
 boot_stack_top:
+mbi_addr: .skip 4
+mbi_magic: .skip 4
 
 /* 16KiB Stack for kernel */
 .section .bss
@@ -69,12 +66,9 @@ stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
 
-/*
-The linker script specifies _start as the entry point to the kernel and the
-bootloader will jump to this position once the kernel has been loaded. It
-doesn't make sense to return from this function as the bootloader is gone.
-*/
 .section .text
+.include "kernel/idt.s"
+
 .global _start
 .type _start, @function
 .global gdt_flush
@@ -126,9 +120,15 @@ set_paging:
 	ret
 
 .extern init_paging
+.extern mbmain
 higher_half_start:
 	/* Initialize stack before jumping into C code as a stack is reqd. */
 	lea esp, stack_top
+
+	/* Set up memory mapping for PFA */
+	push mbi_magic
+	push mbi_addr
+	call mbmain
 
 	/* Initialize paging, GDT, IDT and TSS */
 	call gdt_install
